@@ -1,3 +1,8 @@
+# wireguard-vxlan-glue
+
+This project is based on ffmucs wgkex, and drops everything mqtt related, as routers in hannover have to be registered manually and we really just want wireguard, and not mqtt infrastructure.
+Thanks to munich for their outstanding work and ongoing support!
+
 # WireGuard Key Exchange
 
 WireGuard Key Exchange is a tool consisting of two parts: a frontend (broker) and a backend (worker). The frontend (broker) is where the client can push (register) its key before connecting. The backend (worker) is injecting those keys into a WireGuard instance.
@@ -5,30 +10,11 @@ This tool is intended to facilitate running BATMAN over VXLAN over WireGuard as 
 
 ## Installation
 
-* TBA
+* Put this file on a server, and run it using a service - indefinitely.
+* Have another daemon adding wireguard peers from our repo.
 
 ## Configuration
 
-* TBA
+* Specify interfaces using -w and -x and have equal amounts of them.
 
-## Running the broker
 
-* The broker web frontend can be started directly from a Git checkout:
-```
-# defaults to /etc/wgkex.yaml if not set
-export WGKEX_CONFIG_FILE=/opt/wgkex/wgkex.yaml
-poetry run wgkex-broker
-```
-
-## Client usage
-
-```
-$ wget -q  -O- --post-data='{"domain": "ffmuc_welt","public_key": "o52Ge+Rpj4CUSitVag9mS7pSXUesNM0ESnvj/wwehkg="}'   --header='Content-Type:application/json'   'http://127.0.0.1:5000/api/v1/wg/key/exchange'
-{
-  "Message": "OK"
-}
-```
-
-## Contact
-
-#wgkex - IRCNet
