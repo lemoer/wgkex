@@ -135,7 +135,7 @@ class ConfigManager:
                 )
 
             if new_state:
-                print(f'Installed route and fdb entry for {peer.public_key} ({self.wg_interface}, {self.vx_interface}).')
+                print(f'Installed route and fdb entry for {peer.public_key} ({self.wg_interface}, {self.vx_interface})')
             else:
                 print(f'Removed route and fdb entry for {peer.public_key} ({self.wg_interface}, {self.vx_interface}).')
 
