@@ -1,12 +1,7 @@
 import hashlib
-import re
-from dataclasses import dataclass
-from datetime import datetime, timedelta
 from json import loads as json_loads
 from textwrap import wrap
-from typing import Dict, List
 from datetime import datetime, timedelta
-import signal
 
 from pyroute2 import WireGuard, IPRoute
 import argparse
@@ -38,17 +33,17 @@ def mac2eui64(mac, prefix=None):
             net = ipaddress.ip_network(prefix, strict=False)
             euil = int("0x{}".format(eui64), 16)
             return "{}/{}".format(net[euil], net.prefixlen)
-        except Exception:  # pylint: disable=broad-except
+        except [KeyError, ValueError]:
             return
 
-#from wgkex.common.utils import mac2eui64
 
 TIMEOUT = timedelta(minutes=3)
 
+
 class WireGuardPeer:
 
-    def __init__(self, public_key: str, latest_handshake : int = None,
-                 is_installed : bool = False):
+    def __init__(self, public_key: str, latest_handshake: datetime = None,
+                 is_installed: bool = False):
         self.public_key = public_key
         self.latest_handshake = latest_handshake
         self.is_installed = is_installed
@@ -84,16 +79,17 @@ class WireGuardPeer:
         remove: Are we removing this peer or not?
     """
 
+
 class ConfigManager:
 
-    def __init__(self, wg_interface : str, vx_interface : str):
+    def __init__(self, wg_interface: str, vx_interface: str):
         self.all_peers = []
         self.wg_interface = wg_interface
         self.vx_interface = vx_interface
 
-    def find_by_public_key(self, public_key : str) -> [WireGuardPeer]:
+    def find_by_public_key(self, public_key: str) -> [WireGuardPeer]:
         peer = list(filter(lambda p: p.public_key == public_key, self.all_peers))
-        assert(len(peer) <= 1)
+        assert (len(peer) <= 1)
         return peer
 
     def pull_from_wireguard(self):
@@ -117,13 +113,15 @@ class ConfigManager:
 
                     peer.latest_handshake = datetime.fromtimestamp(latest_handshake)
 
-    def push_vxlan_configs(self, force_remove = False):
+    def push_vxlan_configs(self, force_remove=False):
         for peer in self.all_peers:
             if force_remove:
-                if not peer.is_installed: continue
+                if not peer.is_installed:
+                    continue
                 new_state = False
             else:
-                if not peer.needs_config: continue
+                if not peer.needs_config:
+                    continue
                 new_state = peer.is_established
 
             with IPRoute() as ip:
@@ -154,16 +152,16 @@ class ConfigManager:
         self.push_vxlan_configs(force_remove=True)
 
 
-def check_iface_type(iface, type):
+def check_iface_type(iface, iface_type):
     if not os.path.exists(f'/sys/class/net/{iface}'):
         print(f'Iface {iface} does not exist! Exiting...')
         exit(1)
 
     with open(f'/sys/class/net/{iface}/uevent', 'r') as f:
         for line in f.readlines():
-            l = line.replace('\n', '').split('=')
-            if l[0] == 'DEVTYPE' and l[1] != type:
-                print(f'Iface {iface} is wrong type! Should be {type}, but is {l[1]}. Exiting...')
+            attributes = line.replace('\n', '').split('=')
+            if attributes[0] == 'DEVTYPE' and attributes[1] != iface_type:
+                print(f'Iface {iface} is wrong type! Should be {iface_type}, but is {attributes[1]}. Exiting...')
                 exit(1)
 
 
@@ -188,16 +186,17 @@ if __name__ == '__main__':
 
     class Args:
         def __init__(self):
-            self.wireguard=[]
-            self.vxlan=[]
+            self.wireguard = []
+            self.vxlan = []
+
 
     parser = argparse.ArgumentParser(description='Process some interfaces.')
     parser.add_argument('-c', '--cfg', metavar='CONFIGPATH', type=str,
-                    help='ignore -w and -x and read a configfile instead')
+                        help='ignore -w and -x and read a configfile instead')
     parser.add_argument('-w', '--wireguard', metavar='IFACE', type=str, nargs='+',
-                    help='add an wireguard interfaces', default=[])
+                        help='add an wireguard interfaces', default=[])
     parser.add_argument('-x', '--vxlan', metavar='IFACE', type=str, nargs='+',
-                    help='add an vxlan interfaces', default=[])
+                        help='add an vxlan interfaces', default=[])
 
     args = parser.parse_args()
 
@@ -208,10 +207,10 @@ if __name__ == '__main__':
         # overwrite args
         with open(args.cfg) as configfile:
             data = configfile.read()
-            configobject=json_loads(data)
-            args=Args()
-            args.wireguard=configobject['interfaces']['wireguard']
-            args.vxlan=configobject['interfaces']['vxlan']
+            configobject = json_loads(data)
+            args = Args()
+            args.wireguard = configobject['interfaces']['wireguard']
+            args.vxlan = configobject['interfaces']['vxlan']
 
     if len(args.wireguard) != len(args.vxlan):
         print('Please specify equal amount of vxlan and wireguard interfaces.')
@@ -234,13 +233,15 @@ if __name__ == '__main__':
 
     should_stop = False
 
-    def handler(signum, frame):
+
+    def handler(signum, _):
         global should_stop
         if signum == signal.SIGTERM:
             print('Received SIGTERM. Exiting...')
         elif signum == signal.SIGINT:
             print('Received SIGINT. Exiting...')
         should_stop = True
+
 
     signal.signal(signal.SIGTERM, handler)
     signal.signal(signal.SIGINT, handler)
